@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
@@ -24,7 +25,7 @@ func main() {
 
 		p := widget.NewModalPopUp(overlay, w.Canvas())
 		stop.OnTapped = func() {
-			remain = 0
+			remain = -1 // don't notify
 			p.Hide()
 		}
 		go func() {
@@ -35,6 +36,9 @@ func main() {
 				time.Sleep(time.Second)
 			}
 
+			if remain == 0 {
+				a.SendNotification(fyne.NewNotification("Focus done", "Your focus timer finished"))
+			}
 			p.Hide()
 		}()
 		p.Show()

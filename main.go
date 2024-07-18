@@ -20,7 +20,8 @@ func main() {
 	w := a.NewWindow("Fomato Timer")
 
 	focusTime := a.Preferences().IntWithFallback(keyTimerLength, 30*60)
-	timer := widget.NewRichTextFromMarkdown(formatTimerMarkdown(focusTime))
+	timer := widget.NewRichText()
+	updateTime(timer, focusTime)
 
 	less := widget.NewButton("-", func() {
 		if focusTime <= 5*60 { // min bound
@@ -28,19 +29,19 @@ func main() {
 		}
 
 		focusTime -= 60 * 5
-		timer.ParseMarkdown(formatTimerMarkdown(focusTime))
+		updateTime(timer, focusTime)
 		a.Preferences().SetInt(keyTimerLength, focusTime)
 	})
 	more := widget.NewButton("+", func() {
 		focusTime += 60 * 5
-		timer.ParseMarkdown(formatTimerMarkdown(focusTime))
+		updateTime(timer, focusTime)
 		a.Preferences().SetInt(keyTimerLength, focusTime)
 	})
 	timeRow := container.NewHBox(less, timer, more)
 
 	start := widget.NewButton("Start", func() {
-		ticker := widget.NewRichTextFromMarkdown(formatTimerMarkdown(focusTime))
-		themeTimer(ticker, focusTime)
+		ticker := widget.NewRichText()
+		updateTime(ticker, focusTime)
 		remain := focusTime
 		stop := widget.NewButton("Stop", nil)
 		overlay := container.NewPadded(container.NewVBox(ticker, stop))
@@ -52,8 +53,7 @@ func main() {
 		}
 		go func() {
 			for remain > 0 {
-				ticker.ParseMarkdown(formatTimerMarkdown(remain))
-				themeTimer(ticker, remain)
+				updateTime(ticker, remain)
 
 				remain--
 				time.Sleep(time.Second)
@@ -78,8 +78,9 @@ func formatTimer(time int) string {
 	return fmt.Sprintf("%02d:%02d", mins, secs)
 }
 
-func formatTimerMarkdown(sec int) string {
-	return "# " + formatTimer(sec)
+func updateTime(out *widget.RichText, time int) {
+	out.ParseMarkdown("# " + formatTimer(time))
+	themeTimer(out, time)
 }
 
 func themeTimer(text *widget.RichText, time int) {

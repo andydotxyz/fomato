@@ -7,6 +7,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -38,10 +39,11 @@ func main() {
 	timeRow := container.NewHBox(less, timer, more)
 
 	start := widget.NewButton("Start", func() {
-		timer := widget.NewRichTextFromMarkdown(formatTimerMarkdown(focusTime))
+		ticker := widget.NewRichTextFromMarkdown(formatTimerMarkdown(focusTime))
+		themeTimer(ticker, focusTime)
 		remain := focusTime
 		stop := widget.NewButton("Stop", nil)
-		overlay := container.NewPadded(container.NewVBox(timer, stop))
+		overlay := container.NewPadded(container.NewVBox(ticker, stop))
 
 		p := widget.NewModalPopUp(overlay, w.Canvas())
 		stop.OnTapped = func() {
@@ -50,7 +52,8 @@ func main() {
 		}
 		go func() {
 			for remain > 0 {
-				timer.ParseMarkdown(formatTimerMarkdown(remain))
+				ticker.ParseMarkdown(formatTimerMarkdown(remain))
+				themeTimer(ticker, remain)
 
 				remain--
 				time.Sleep(time.Second)
@@ -77,4 +80,16 @@ func formatTimer(time int) string {
 
 func formatTimerMarkdown(sec int) string {
 	return "# " + formatTimer(sec)
+}
+
+func themeTimer(text *widget.RichText, time int) {
+	seg := text.Segments[0].(*widget.TextSegment)
+	if time < 30 {
+		seg.Style.ColorName = theme.ColorNameError
+	} else if time < 150 {
+		seg.Style.ColorName = theme.ColorNameWarning
+	} else {
+		seg.Style.ColorName = theme.ColorNameSuccess
+	}
+	text.Refresh()
 }

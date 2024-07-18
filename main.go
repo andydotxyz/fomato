@@ -10,16 +10,36 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+const (
+	keyTimerLength = "focus.default"
+)
+
 func main() {
 	a := app.NewWithID("xyz.andy.fomato")
 	w := a.NewWindow("Fomato Timer")
 
-	focusTime := 30 * 60
+	focusTime := a.Preferences().IntWithFallback(keyTimerLength, 30*60)
 	timer := widget.NewRichTextFromMarkdown(formatTimerMarkdown(focusTime))
+
+	less := widget.NewButton("-", func() {
+		if focusTime <= 5*60 { // min bound
+			return
+		}
+
+		focusTime -= 60 * 5
+		timer.ParseMarkdown(formatTimerMarkdown(focusTime))
+		a.Preferences().SetInt(keyTimerLength, focusTime)
+	})
+	more := widget.NewButton("+", func() {
+		focusTime += 60 * 5
+		timer.ParseMarkdown(formatTimerMarkdown(focusTime))
+		a.Preferences().SetInt(keyTimerLength, focusTime)
+	})
+	timeRow := container.NewHBox(less, timer, more)
 
 	start := widget.NewButton("Start", func() {
 		timer := widget.NewRichTextFromMarkdown(formatTimerMarkdown(focusTime))
-		remain := 30 * 60
+		remain := focusTime
 		stop := widget.NewButton("Stop", nil)
 		overlay := container.NewPadded(container.NewVBox(timer, stop))
 
@@ -43,8 +63,8 @@ func main() {
 		}()
 		p.Show()
 	})
-	content := container.NewCenter(container.NewVBox(timer, start))
-	w.SetContent(container.NewPadded(content))
+	content := container.NewCenter(container.NewVBox(timeRow, start))
+	w.SetContent(container.NewPadded(container.NewPadded(content)))
 	w.ShowAndRun()
 }
 

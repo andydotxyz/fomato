@@ -8,14 +8,21 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
+	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"fyne.io/systray"
 )
 
 const (
+	breakTime = 5 * 60
+
 	keyTimerLength = "focus.default"
 )
+
+var running = binding.NewBool()
 
 func main() {
 	a := app.NewWithID("xyz.andy.fomato")
@@ -25,6 +32,26 @@ func main() {
 	focusTime := a.Preferences().IntWithFallback(keyTimerLength, 30*60)
 	timer := widget.NewRichText()
 	updateTime(timer, focusTime)
+
+	if desk, ok := a.(desktop.App); ok {
+		desk.SetSystemTrayIcon(theme.NewThemedResource(resourceTomatoSvg))
+		systray.SetTitle("")
+		focus := fyne.NewMenuItem("Focus", func() {
+			startTimer(focusTime, "Focus", w.Canvas())
+		})
+		slack := fyne.NewMenuItem("Break", func() {
+			startTimer(breakTime, "Break", w.Canvas())
+		})
+		menu := fyne.NewMenu(a.Metadata().Name, focus, slack)
+		desk.SetSystemTrayMenu(menu)
+
+		running.AddListener(binding.NewDataListener(func() {
+			busy, _ := running.Get()
+			focus.Disabled = busy
+			slack.Disabled = busy
+			menu.Refresh()
+		}))
+	}
 
 	less := widget.NewButtonWithIcon("", theme.ContentRemoveIcon(), func() {
 		if focusTime <= 5*60 { // min bound
@@ -49,7 +76,7 @@ func main() {
 	})
 	focus.Importance = widget.HighImportance
 	slack := widget.NewButton("Break", func() {
-		startTimer(5*60, "Break", w.Canvas())
+		startTimer(breakTime, "Break", w.Canvas())
 	})
 	content := container.NewCenter(container.NewVBox(timeRow,
 		container.NewGridWithColumns(2, slack, focus)))
@@ -71,6 +98,12 @@ func padTime(t *widget.RichText) fyne.CanvasObject {
 }
 
 func startTimer(remain int, name string, c fyne.Canvas) {
+	busy, _ := running.Get()
+	if busy {
+		return
+	}
+	running.Set(true)
+
 	ticker := widget.NewRichText()
 	updateTime(ticker, remain)
 
@@ -82,19 +115,29 @@ func startTimer(remain int, name string, c fyne.Canvas) {
 	p := widget.NewModalPopUp(overlay, c)
 	stop.OnTapped = func() {
 		remain = -1 // don't notify
+		if _, ok := fyne.CurrentApp().(desktop.App); ok {
+			systray.SetTitle("")
+		}
 		p.Hide()
 	}
 	go func() {
 		for remain > 0 {
 			updateTime(ticker, remain)
+			if _, ok := fyne.CurrentApp().(desktop.App); ok {
+				systray.SetTitle(formatTimer(remain))
+			}
 
 			remain--
 			time.Sleep(time.Second)
 		}
 
+		running.Set(false)
 		if remain == 0 {
 			fyne.CurrentApp().SendNotification(fyne.NewNotification(name+" done",
 				"Your "+strings.ToLower(name)+" timer finished"))
+		}
+		if _, ok := fyne.CurrentApp().(desktop.App); ok {
+			systray.SetTitle("")
 		}
 		p.Hide()
 	}()

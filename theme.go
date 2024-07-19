@@ -1,3 +1,5 @@
+//go:generate fyne bundle -o bundled.go img/tomato.svg
+
 package main
 
 import (

@@ -13,10 +13,13 @@ A simple Pomadoro timer written with Fyne.
 ## Screenshots
 
 Main screen:
+
 ![](img/screenshot.png)
 
 Counting down:
+
 ![](img/running.png)
 
 System tray:
+
 ![](img/systray.png)

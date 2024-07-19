@@ -7,6 +7,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
@@ -17,13 +18,14 @@ const (
 
 func main() {
 	a := app.NewWithID("xyz.andy.fomato")
+	a.Settings().SetTheme(&appTheme{Theme: theme.DefaultTheme()})
 	w := a.NewWindow("Fomato Timer")
 
 	focusTime := a.Preferences().IntWithFallback(keyTimerLength, 30*60)
 	timer := widget.NewRichText()
 	updateTime(timer, focusTime)
 
-	less := widget.NewButton("-", func() {
+	less := widget.NewButtonWithIcon("", theme.ContentRemoveIcon(), func() {
 		if focusTime <= 5*60 { // min bound
 			return
 		}
@@ -32,19 +34,24 @@ func main() {
 		updateTime(timer, focusTime)
 		a.Preferences().SetInt(keyTimerLength, focusTime)
 	})
-	more := widget.NewButton("+", func() {
+	more := widget.NewButtonWithIcon("", theme.ContentAddIcon(), func() {
 		focusTime += 60 * 5
 		updateTime(timer, focusTime)
 		a.Preferences().SetInt(keyTimerLength, focusTime)
 	})
-	timeRow := container.NewHBox(less, timer, more)
+	pad := theme.Padding()
+	timeRow := container.NewHBox(container.NewCenter(less),
+		container.New(layout.NewCustomPaddedLayout(-3.5*pad, -2.5*pad, pad, pad), timer),
+		container.NewCenter(more))
 
 	start := widget.NewButton("Start", func() {
 		ticker := widget.NewRichText()
 		updateTime(ticker, focusTime)
 		remain := focusTime
 		stop := widget.NewButton("Stop", nil)
-		overlay := container.NewPadded(container.NewVBox(ticker, stop))
+		overlay := container.NewPadded(container.NewVBox(
+			container.New(layout.NewCustomPaddedLayout(-3.5*pad, -2.5*pad, pad, pad), ticker),
+			stop))
 
 		p := widget.NewModalPopUp(overlay, w.Canvas())
 		stop.OnTapped = func() {
@@ -81,16 +88,4 @@ func formatTimer(time int) string {
 func updateTime(out *widget.RichText, time int) {
 	out.ParseMarkdown("# " + formatTimer(time))
 	themeTimer(out, time)
-}
-
-func themeTimer(text *widget.RichText, time int) {
-	seg := text.Segments[0].(*widget.TextSegment)
-	if time < 30 {
-		seg.Style.ColorName = theme.ColorNameError
-	} else if time < 150 {
-		seg.Style.ColorName = theme.ColorNameWarning
-	} else {
-		seg.Style.ColorName = theme.ColorNameSuccess
-	}
-	text.Refresh()
 }

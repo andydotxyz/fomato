@@ -1,4 +1,5 @@
 //go:generate fyne bundle -o bundled.go img/tomato.svg
+//go:generate fyne bundle -o bundled.go -a img/tomato-colour.svg
 
 package main
 

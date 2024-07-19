@@ -7,6 +7,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/driver/desktop"
@@ -28,6 +29,7 @@ func main() {
 	a := app.NewWithID("xyz.andy.fomato")
 	a.Settings().SetTheme(&appTheme{Theme: theme.DefaultTheme()})
 	w := a.NewWindow("Fomato Timer")
+	w.SetPadded(false)
 	w.SetCloseIntercept(func() {
 		w.Hide()
 	})
@@ -84,7 +86,14 @@ func main() {
 	})
 	content := container.NewCenter(container.NewVBox(timeRow,
 		container.NewGridWithColumns(2, slack, focus)))
-	w.SetContent(container.NewPadded(container.NewPadded(content)))
+
+	bg := canvas.NewImageFromResource(resourceTomatoColourSvg)
+	bg.FillMode = canvas.ImageFillContain
+	bg.Translucency = 0.85
+	w.SetContent(container.NewStack(
+		bg,
+		container.NewPadded(container.NewPadded(content))))
+	w.Resize(fyne.NewSquareSize(content.MinSize().Width + theme.Padding()*4))
 	w.ShowAndRun()
 }
 
@@ -107,6 +116,9 @@ func startTimer(remain int, name string, c fyne.Canvas) {
 		return
 	}
 	running.Set(true)
+	if desk, ok := fyne.CurrentApp().(desktop.App); ok {
+		desk.SetSystemTrayIcon(resourceTomatoColourSvg)
+	}
 
 	ticker := widget.NewRichText()
 	updateTime(ticker, remain)
@@ -119,7 +131,8 @@ func startTimer(remain int, name string, c fyne.Canvas) {
 	p := widget.NewModalPopUp(overlay, c)
 	stop.OnTapped = func() {
 		remain = -1 // don't notify
-		if _, ok := fyne.CurrentApp().(desktop.App); ok {
+		if desk, ok := fyne.CurrentApp().(desktop.App); ok {
+			desk.SetSystemTrayIcon(theme.NewThemedResource(resourceTomatoSvg))
 			systray.SetTitle("")
 		}
 		p.Hide()
@@ -140,7 +153,8 @@ func startTimer(remain int, name string, c fyne.Canvas) {
 			fyne.CurrentApp().SendNotification(fyne.NewNotification(name+" done",
 				"Your "+strings.ToLower(name)+" timer finished"))
 		}
-		if _, ok := fyne.CurrentApp().(desktop.App); ok {
+		if desk, ok := fyne.CurrentApp().(desktop.App); ok {
+			desk.SetSystemTrayIcon(theme.NewThemedResource(resourceTomatoSvg))
 			systray.SetTitle("")
 		}
 		p.Hide()

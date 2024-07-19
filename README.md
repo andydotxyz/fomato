@@ -8,7 +8,15 @@ A simple Pomadoro timer written with Fyne.
 * Notifications when the timer is done
 * Colour highlight when time is running out
 * Take a break for 5 minutes
+* System tray access
 
-## Screenshot
+## Screenshots
 
+Main screen:
 ![](img/screenshot.png)
+
+Counting down:
+![](img/running.png)
+
+System tray:
+![](img/systray.png)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -39,41 +40,19 @@ func main() {
 		updateTime(timer, focusTime)
 		a.Preferences().SetInt(keyTimerLength, focusTime)
 	})
-	pad := theme.Padding()
 	timeRow := container.NewHBox(container.NewCenter(less),
-		container.New(layout.NewCustomPaddedLayout(-3.5*pad, -2.5*pad, pad, pad), timer),
+		padTime(timer),
 		container.NewCenter(more))
 
-	start := widget.NewButton("Start", func() {
-		ticker := widget.NewRichText()
-		updateTime(ticker, focusTime)
-		remain := focusTime
-		stop := widget.NewButton("Stop", nil)
-		overlay := container.NewPadded(container.NewVBox(
-			container.New(layout.NewCustomPaddedLayout(-3.5*pad, -2.5*pad, pad, pad), ticker),
-			stop))
-
-		p := widget.NewModalPopUp(overlay, w.Canvas())
-		stop.OnTapped = func() {
-			remain = -1 // don't notify
-			p.Hide()
-		}
-		go func() {
-			for remain > 0 {
-				updateTime(ticker, remain)
-
-				remain--
-				time.Sleep(time.Second)
-			}
-
-			if remain == 0 {
-				a.SendNotification(fyne.NewNotification("Focus done", "Your focus timer finished"))
-			}
-			p.Hide()
-		}()
-		p.Show()
+	focus := widget.NewButton("Focus", func() {
+		startTimer(focusTime, "Focus", w.Canvas())
 	})
-	content := container.NewCenter(container.NewVBox(timeRow, start))
+	focus.Importance = widget.HighImportance
+	slack := widget.NewButton("Break", func() {
+		startTimer(5*60, "Break", w.Canvas())
+	})
+	content := container.NewCenter(container.NewVBox(timeRow,
+		container.NewGridWithColumns(2, slack, focus)))
 	w.SetContent(container.NewPadded(container.NewPadded(content)))
 	w.ShowAndRun()
 }
@@ -83,6 +62,43 @@ func formatTimer(time int) string {
 	mins := (time - secs) / 60
 
 	return fmt.Sprintf("%02d:%02d", mins, secs)
+}
+
+func padTime(t *widget.RichText) fyne.CanvasObject {
+	pad := theme.Padding()
+
+	return container.New(layout.NewCustomPaddedLayout(-3.5*pad, -2.5*pad, pad, pad), t)
+}
+
+func startTimer(remain int, name string, c fyne.Canvas) {
+	ticker := widget.NewRichText()
+	updateTime(ticker, remain)
+
+	stop := widget.NewButton("Stop", nil)
+	overlay := container.NewPadded(container.NewVBox(
+		padTime(ticker),
+		stop))
+
+	p := widget.NewModalPopUp(overlay, c)
+	stop.OnTapped = func() {
+		remain = -1 // don't notify
+		p.Hide()
+	}
+	go func() {
+		for remain > 0 {
+			updateTime(ticker, remain)
+
+			remain--
+			time.Sleep(time.Second)
+		}
+
+		if remain == 0 {
+			fyne.CurrentApp().SendNotification(fyne.NewNotification(name+" done",
+				"Your "+strings.ToLower(name)+" timer finished"))
+		}
+		p.Hide()
+	}()
+	p.Show()
 }
 
 func updateTime(out *widget.RichText, time int) {

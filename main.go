@@ -28,6 +28,9 @@ func main() {
 	a := app.NewWithID("xyz.andy.fomato")
 	a.Settings().SetTheme(&appTheme{Theme: theme.DefaultTheme()})
 	w := a.NewWindow("Fomato Timer")
+	w.SetCloseIntercept(func() {
+		w.Hide()
+	})
 
 	focusTime := a.Preferences().IntWithFallback(keyTimerLength, 30*60)
 	timer := widget.NewRichText()
@@ -36,13 +39,14 @@ func main() {
 	if desk, ok := a.(desktop.App); ok {
 		desk.SetSystemTrayIcon(theme.NewThemedResource(resourceTomatoSvg))
 		systray.SetTitle("")
+		show := fyne.NewMenuItem("Show", w.Show)
 		focus := fyne.NewMenuItem("Focus", func() {
 			startTimer(focusTime, "Focus", w.Canvas())
 		})
 		slack := fyne.NewMenuItem("Break", func() {
 			startTimer(breakTime, "Break", w.Canvas())
 		})
-		menu := fyne.NewMenu(a.Metadata().Name, focus, slack)
+		menu := fyne.NewMenu(a.Metadata().Name, show, fyne.NewMenuItemSeparator(), focus, slack)
 		desk.SetSystemTrayMenu(menu)
 
 		running.AddListener(binding.NewDataListener(func() {

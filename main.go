@@ -26,7 +26,7 @@ const (
 var running = binding.NewBool()
 
 func main() {
-	a := app.NewWithID("xyz.andy.fomato")
+	a := app.New()
 	a.Settings().SetTheme(&appTheme{Theme: theme.DefaultTheme()})
 	w := a.NewWindow("Fomato Timer")
 	w.SetPadded(false)

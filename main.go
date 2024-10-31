@@ -27,6 +27,8 @@ var running = binding.NewBool()
 
 func main() {
 	a := app.New()
+	setupChime()
+
 	a.Settings().SetTheme(&appTheme{Theme: theme.DefaultTheme()})
 	w := a.NewWindow("Fomato Timer")
 	w.SetPadded(false)
@@ -152,6 +154,7 @@ func startTimer(remain int, name string, c fyne.Canvas) {
 		if remain == 0 {
 			fyne.CurrentApp().SendNotification(fyne.NewNotification(name+" done",
 				"Your "+strings.ToLower(name)+" timer finished"))
+			chime()
 		}
 		if desk, ok := fyne.CurrentApp().(desktop.App); ok {
 			desk.SetSystemTrayIcon(theme.NewThemedResource(resourceTomatoSvg))
